@@ -11,6 +11,7 @@ import os
 import os.path as osp
 from sklearn.neighbors import kneighbors_graph, radius_neighbors_graph
 
+
 class Base:
 
     def __init__(self, adj, features, device):
@@ -22,7 +23,7 @@ class Base:
     def get_adj_norm(self):
         if self.cached_adj_norm is None:
             adj_norm = preprocess_adj(self.adj, self.device)
-            self.cached_adj_norm= adj_norm
+            self.cached_adj_norm = adj_norm
         return self.cached_adj_norm
 
     def make_loss(self, embeddings):
@@ -70,7 +71,7 @@ class PairwiseAttrSim(Base):
 
     def regression_loss(self, embeddings):
         if self.pseudo_labels is None:
-            agent = AttrSim(self.adj ,self.features, args=self.args)
+            agent = AttrSim(self.adj, self.features, args=self.args)
             self.pseudo_labels = agent.get_label().to(self.device)
             node_pairs = agent.node_pairs
             self.node_pairs = node_pairs
@@ -95,7 +96,7 @@ class PairwiseAttrSim(Base):
 
     def classification_loss(self, embeddings):
         if self.pseudo_labels is None:
-            agent = AttrSim(self.adj ,self.features, self.labels, self.args)
+            agent = AttrSim(self.adj, self.features, self.labels, self.args)
             pseudo_labels = agent.get_class()
             self.pseudo_labels = torch.LongTensor(pseudo_labels).to(self.device)
             self.node_pairs = agent.node_pairs
@@ -115,8 +116,8 @@ class PairwiseAttrSim(Base):
 
     def sample(self, labels, ratio=0.1, k=2000):
         node_pairs = []
-        for i in range(1, labels.max()+1):
-            tmp = np.array(np.where(labels==i)).transpose()
+        for i in range(1, labels.max() + 1):
+            tmp = np.array(np.where(labels == i)).transpose()
             indices = np.random.choice(np.arange(len(tmp)), k, replace=False)
             node_pairs.append(tmp[indices])
         node_pairs = np.array(node_pairs).reshape(-1, 2).transpose()
@@ -144,11 +145,11 @@ class MergedKNNGraph(Base):
         k = args.k
 
         if not osp.exists('saved/'):
-           os.mkdir('saved')
+            os.mkdir('saved')
         if not os.path.exists(f'saved/{args.dataset}_sims_{k}.npz'):
             from sklearn.metrics.pairwise import cosine_similarity
             features = np.copy(features)
-            features[features!=0] = 1
+            features[features != 0] = 1
             sims = cosine_similarity(features)
             sims[(np.arange(len(sims)), np.arange(len(sims)))] = 0
             for i in range(len(sims)):
@@ -160,7 +161,6 @@ class MergedKNNGraph(Base):
         else:
             print(f'loading saved/{args.dataset}_sims_{k}.npz')
             self.A_feat = sp.load_npz(f'saved/{args.dataset}_sims_{k}.npz')
-
 
     def transform_data(self, lambda_=None):
         if self.cached_adj_norm is None:
@@ -193,7 +193,7 @@ class KNNGraphPrediction(Base):
 
         self.cached_adj_norm = None
         self.pseudo_labels = None
-        self.linear = nn.Linear(2*nhid, 2).to(device)
+        self.linear = nn.Linear(2 * nhid, 2).to(device)
 
     def transform_data(self):
         sample_ratio = 0.1
@@ -202,7 +202,7 @@ class KNNGraphPrediction(Base):
             edges = self.pos_sample(sample_ratio)
             self.pos_edges = edges
             self.neg_edges = self.neg_sample(k=len(edges[0]))
-            self.pseudo_labels = np.zeros(2*len(edges[0]))
+            self.pseudo_labels = np.zeros(2 * len(edges[0]))
             self.pseudo_labels[: len(edges[0])] = 1
             self.pseudo_labels = torch.LongTensor(self.pseudo_labels).to(self.device)
             # self.neg_edges = self.neg_sample(k=len(edges[0]))
@@ -227,7 +227,7 @@ class KNNGraphPrediction(Base):
     def pos_sample(self, sample_ratio):
         nnz = self.adj_knn.nnz
         perm = np.random.permutation(nnz)
-        nnz_sampled = int(nnz*(sample_ratio))
+        nnz_sampled = int(nnz * (sample_ratio))
         sampled = perm[: nnz_sampled]
         edges = (self.adj_knn.row[sampled], self.adj_knn.col[sampled])
         return edges
@@ -274,7 +274,6 @@ class KNNPlusPairAttr(Base):
         return self.agent2.make_loss(embeddings)
 
 
-
 class OnlyKNN(Base):
 
     def __init__(self, adj, features, nhid, device, idx_train, args):
@@ -301,7 +300,7 @@ class OnlyKNN(Base):
             # metric = jaccard
             metric = "cosine"
             # sims = pairwise_distances(self.features, self.features, metric=metric)
-            features[features!=0] = 1
+            features[features != 0] = 1
 
             sims = cosine_similarity(features)
             sims[(np.arange(len(sims)), np.arange(len(sims)))] = 0
@@ -316,24 +315,24 @@ class OnlyKNN(Base):
             print(f'loading {args.dataset}_sims_{k}.npz')
             self.A_feat = sp.load_npz(f'{args.dataset}_sims_{k}.npz')
 
-
     def transform_data(self, lambda_=None):
-
 
         if self.cached_adj_norm is None:
             r_adj = self.A_feat
             r_adj = preprocess_adj(r_adj, self.device)
             self.cached_adj_norm = r_adj
 
-            self.features[self.features!=0] = 1
+            self.features[self.features != 0] = 1
 
         return self.cached_adj_norm, self.features
 
     def make_loss(self, embeddings):
         return 0
 
+
 def preprocess_features(features, device):
     return features.to(device)
+
 
 def preprocess_adj(adj, device):
     # adj_normalizer = fetch_normalization(normalization)
@@ -343,6 +342,7 @@ def preprocess_adj(adj, device):
     r_adj = r_adj.to(device)
     return r_adj
 
+
 def preprocess_adj_noloop(adj, device):
     # adj_normalizer = fetch_normalization(normalization)
     adj_normalizer = noaug_normalized_adjacency
@@ -350,6 +350,7 @@ def preprocess_adj_noloop(adj, device):
     r_adj = sparse_mx_to_torch_sparse_tensor(r_adj).float()
     r_adj = r_adj.to(device)
     return r_adj
+
 
 def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     """Convert a scipy sparse matrix to a torch sparse tensor."""
@@ -360,20 +361,21 @@ def sparse_mx_to_torch_sparse_tensor(sparse_mx):
     shape = torch.Size(sparse_mx.shape)
     return torch.sparse.FloatTensor(indices, values, shape)
 
+
 def aug_normalized_adjacency(adj):
-   adj = adj + sp.eye(adj.shape[0])
-   adj = sp.coo_matrix(adj)
-   row_sum = np.array(adj.sum(1))
-   d_inv_sqrt = np.power(row_sum, -0.5).flatten()
-   d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-   d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-   return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
+    adj = adj + sp.eye(adj.shape[0])
+    adj = sp.coo_matrix(adj)
+    row_sum = np.array(adj.sum(1))
+    d_inv_sqrt = np.power(row_sum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+    return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
+
 
 def noaug_normalized_adjacency(adj):
-   adj = sp.coo_matrix(adj)
-   row_sum = np.array(adj.sum(1))
-   d_inv_sqrt = np.power(row_sum, -0.5).flatten()
-   d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-   d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-   return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()
-
+    adj = sp.coo_matrix(adj)
+    row_sum = np.array(adj.sum(1))
+    d_inv_sqrt = np.power(row_sum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+    return d_mat_inv_sqrt.dot(adj).dot(d_mat_inv_sqrt).tocoo()

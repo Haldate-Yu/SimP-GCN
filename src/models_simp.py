@@ -7,7 +7,6 @@ from torch.nn.parameter import Parameter
 from utils import sparse_mx_to_torch_sparse_tensor
 import scipy.sparse as sp
 
-
 device = torch.device("cuda:0")
 
 
@@ -59,7 +58,7 @@ class SimPGCN(nn.Module):
         self.mixmode = mixmode
         self.dropout = dropout
 
-        print('=== Number of Total Layers is %s ===' % (nhidlayer*nbaselayer + 2))
+        print('=== Number of Total Layers is %s ===' % (nhidlayer * nbaselayer + 2))
         if baseblock == "resgcn":
             self.BASEBLOCK = ResGCNBlock
         elif baseblock == "densegcn":
@@ -133,7 +132,8 @@ class SimPGCN(nn.Module):
         for i in range(nhidlayer):
             self.bias.append(Parameter(torch.FloatTensor(1)))
         for b in self.bias:
-            b.data.fill_(kwargs['bias_init']) # fill in b with postive value to make score s closer to 1 at the beginning
+            b.data.fill_(
+                kwargs['bias_init'])  # fill in b with postive value to make score s closer to 1 at the beginning
 
         # self.D_k = Parameter(torch.FloatTensor(kwargs['nnodes'], 1))
         self.D_k = nn.ParameterList()
@@ -151,7 +151,7 @@ class SimPGCN(nn.Module):
         for i in range(nhidlayer):
             self.D_bias.append(Parameter(torch.FloatTensor(1)))
         for b in self.D_bias:
-            b.data.fill_(0) # fill in b with postive value to make score s closer to 1 at the beginning
+            b.data.fill_(0)  # fill in b with postive value to make score s closer to 1 at the beginning
 
         self.gamma = kwargs['gamma']
 
@@ -171,11 +171,12 @@ class SimPGCN(nn.Module):
 
         if use_Dk:
             Dk_i = (fea @ self.D_k[0] + self.D_bias[0])
-            x = (s_i * self.ingc(fea, adj) + (1-s_i) * self.ingc(fea, adj_knn)) + (gamma) * Dk_i * self.ingc(fea, self.identity)
+            x = (s_i * self.ingc(fea, adj) + (1 - s_i) * self.ingc(fea, adj_knn)) + (gamma) * Dk_i * self.ingc(fea,
+                                                                                                               self.identity)
         else:
-            x = s_i * self.ingc(fea, adj) + (1-s_i) * self.ingc(fea, adj_knn)
+            x = s_i * self.ingc(fea, adj) + (1 - s_i) * self.ingc(fea, adj_knn)
 
-        if layer ==1:
+        if layer == 1:
             embedding = x.clone()
 
         x = F.dropout(x, self.dropout, training=self.training)
@@ -197,15 +198,17 @@ class SimPGCN(nn.Module):
         s_o = torch.sigmoid(x @ self.scores[-1] + self.bias[-1])
         if use_Dk:
             Dk_o = (x @ self.D_k[-1] + self.D_bias[-1])
-            x = (s_o * self.outgc(x, adj) + (1-s_o) * self.outgc(x, adj_knn)) + (gamma) * Dk_o * self.outgc(x, self.identity)
+            x = (s_o * self.outgc(x, adj) + (1 - s_o) * self.outgc(x, adj_knn)) + (gamma) * Dk_o * self.outgc(x,
+                                                                                                              self.identity)
         else:
-            x = s_o * self.outgc(x, adj) + (1-s_o) * self.outgc(x, adj_knn)
+            x = s_o * self.outgc(x, adj) + (1 - s_o) * self.outgc(x, adj_knn)
 
         if layer == -1:
             embedding = x.clone()
         x = F.log_softmax(x, dim=1)
 
-        self.ss = torch.cat((s_i.view(1,-1), s_o.view(1,-1), gamma*Dk_i.view(1,-1), gamma*Dk_o.view(1,-1)), dim=0)
+        self.ss = torch.cat((s_i.view(1, -1), s_o.view(1, -1), gamma * Dk_i.view(1, -1), gamma * Dk_o.view(1, -1)),
+                            dim=0)
         return x, embedding
 
 
@@ -214,6 +217,7 @@ class GCNFlatRes(nn.Module):
     """
     (Legacy)
     """
+
     def __init__(self, nfeat, nhid, nclass, withbn, nreslayer, dropout, mixmode=False):
         super(GCNFlatRes, self).__init__()
 
@@ -235,5 +239,3 @@ class GCNFlatRes(nn.Module):
         x = self.reslayer(x, adj)
         # x = F.dropout(x, self.dropout, training=self.training)
         return F.log_softmax(x, dim=1)
-
-

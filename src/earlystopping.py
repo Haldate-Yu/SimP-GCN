@@ -2,7 +2,7 @@
 # coding=utf-8
 import numpy as np
 import torch
-import random,string
+import random, string
 import datetime
 import os
 
@@ -10,6 +10,7 @@ import os
 folder = "tmpmodel"
 if not os.path.exists(folder):
     os.mkdir(folder)
+
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
@@ -48,7 +49,7 @@ class EarlyStopping:
         elif score < self.best_score:
             self.counter += 1
             if self.verbose:
-                print("EarlyStopping counter: %d out of %d"%(self.counter, self.patience))
+                print("EarlyStopping counter: %d out of %d" % (self.counter, self.patience))
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -66,9 +67,9 @@ class EarlyStopping:
     def save_checkpoint(self, val_loss, model):
         '''Saves model when validation loss decrease.'''
         if self.verbose:
-            print('Validation loss decreased (%.6f --> %.6f).  Saving model ...'%(self.val_loss_min, val_loss))
+            print('Validation loss decreased (%.6f --> %.6f).  Saving model ...' % (self.val_loss_min, val_loss))
         torch.save(model.state_dict(), self.fname)
         self.val_loss_min = val_loss
 
     def load_checkpoint(self):
-        return  torch.load(self.fname)
+        return torch.load(self.fname)

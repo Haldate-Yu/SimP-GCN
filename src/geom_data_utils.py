@@ -33,6 +33,7 @@ from sklearn.model_selection import ShuffleSplit
 import geom_utils
 from utils import to_scipy, row_normalize
 
+
 def load_data(dataset_name, splits_file_path=None, train_percentage=None, val_percentage=None, embedding_mode=None,
               embedding_method=None,
               embedding_method_graph=None, embedding_method_space=None):
@@ -167,7 +168,7 @@ def load_data(dataset_name, splits_file_path=None, train_percentage=None, val_pe
 
 
 def load_geom_datasets(dataset, seed):
-    dataset_split = 'splits/%s_split_0.6_0.2_%s.npz' % (dataset, seed%10) # seed%10 --> which split
+    dataset_split = 'splits/%s_split_0.6_0.2_%s.npz' % (dataset, seed % 10)  # seed%10 --> which split
     print('loading %s' % dataset_split)
     adj, features, labels, train_mask, val_mask, test_mask, num_features, num_labels = load_data(
         dataset, dataset_split, None, None, 'ExperimentTwoAll')
@@ -176,9 +177,9 @@ def load_geom_datasets(dataset, seed):
     # print((adj+adj.transpose()).nnz)
 
     idx = np.arange(len(labels))
-    idx_train, idx_val, idx_test = idx[train_mask.astype(np.bool)], idx[val_mask.astype(np.bool)], idx[test_mask.astype(np.bool)]
+    idx_train, idx_val, idx_test = idx[train_mask.astype(np.bool)], idx[val_mask.astype(np.bool)], idx[
+        test_mask.astype(np.bool)]
 
     features = row_normalize(features)
 
     return adj, adj, features, features, labels, idx_train, idx_val, idx_test, None, None
-

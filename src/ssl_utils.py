@@ -5,10 +5,12 @@ import os
 import subprocess
 import scipy.sparse as sp
 
+
 def encode_onehot(labels):
     eye = np.eye(labels.max() + 1)
     onehot_mx = eye[labels]
     return onehot_mx
+
 
 def normalize_vector(v):
     # mean_ = torch.mean(v)
@@ -16,6 +18,7 @@ def normalize_vector(v):
     # return (v - mean_) / std
     # return (v-v.min())/(v.max()-v.min())
     return v
+
 
 def calc_pagerank(G, device, multi_class):
     pagerank = nx.pagerank(G, alpha=0.85)
@@ -28,6 +31,7 @@ def calc_pagerank(G, device, multi_class):
         pseudo_labels = torch.Tensor([p for p in pagerank.values()]).to(device)
         pseudo_labels = normalize_vector(pseudo_labels)
         return pseudo_labels
+
 
 def calc_degree(G, device, multi_class):
     degrees = dict(G.degree())
@@ -45,6 +49,7 @@ def calc_degree(G, device, multi_class):
 def calc_node_importance(G):
     pass
 
+
 def calc_centrality(G, device, multi_class):
     centrality = nx.closeness_centrality(G)
     if multi_class:
@@ -55,8 +60,10 @@ def calc_centrality(G, device, multi_class):
         pseudo_labels = torch.Tensor([p for p in centrality.values()]).to(device)
         return pseudo_labels
 
+
 def calc_clustering_coeff(G):
     pass
+
 
 def split_multiclass(pseudo_labels, sorted_values):
     n = len(sorted_values)
@@ -68,14 +75,15 @@ def split_multiclass(pseudo_labels, sorted_values):
     high_indices = (pseudo_labels > high)
     low_indices = (pseudo_labels <= low)
     mid_indices = ((pseudo_labels > low) & (pseudo_labels <= high))
-    real_mid_indices = ((pseudo_labels > sorted_values[int(0.35*n)]) & \
-                        (pseudo_labels <= sorted_values[int(0.65*n)]))
+    real_mid_indices = ((pseudo_labels > sorted_values[int(0.35 * n)]) & \
+                        (pseudo_labels <= sorted_values[int(0.65 * n)]))
     pseudo_labels[high_indices] = 2
     pseudo_labels[low_indices] = 0
     pseudo_labels[mid_indices] = 1
     pseudo_labels[real_mid_indices] = 1
 
     return pseudo_labels
+
 
 def bfs(adj, node, visited):
     pass
@@ -84,10 +92,13 @@ def bfs(adj, node, visited):
 def label_statics(labels):
     counter = {}
     for x in labels:
-        counter[x] = counter.get(x, 0) + 1/len(labels)
+        counter[x] = counter.get(x, 0) + 1 / len(labels)
     return counter
 
+
 import pandas as pd
+
+
 def feature_statics(features):
     df = pd.DataFrame(features)
     import ipdb
@@ -95,7 +106,7 @@ def feature_statics(features):
 
 
 def othertraining(adj, features, labels, idx_train, args, model='LP'):
-    if model =='ICA':
+    if model == 'ICA':
         from distance import ICAAgent
         unlabeled = np.array([x for x in range(adj.shape[0]) if x not in idx_train])
         labels = encode_onehot(labels)
@@ -111,7 +122,7 @@ def othertraining(adj, features, labels, idx_train, args, model='LP'):
         probs = agent.probs
         nclass = labels.shape[1]
 
-    return torch.LongTensor(preds), np.arange(adj.shape[0])[probs.max(1) > 4/nclass]
+    return torch.LongTensor(preds), np.arange(adj.shape[0])[probs.max(1) > 4 / nclass]
 
 
 def selftraining(adj, labels, idx_train, args):
@@ -139,8 +150,8 @@ def selftraining(adj, labels, idx_train, args):
 
     # eta = adj.shape[0]/(adj.sum()/adj.shape[0])**2
     # t = (encode_onehot(labels[idx_train]).sum(0)*3*eta/len(idx_train)).astype(np.int64)
-    eta = adj.shape[0]/(adj.sum()/adj.shape[0])**2
-    t = (y_train.sum(axis=0)*3*eta/y_train.sum()).astype(np.int64)
+    eta = adj.shape[0] / (adj.sum() / adj.shape[0]) ** 2
+    t = (y_train.sum(axis=0) * 3 * eta / y_train.sum()).astype(np.int64)
 
     new_gcn_index = np.argmax(prediction, axis=1)
     confidence = np.max(prediction, axis=1)
@@ -181,13 +192,15 @@ def selftraining(adj, labels, idx_train, args):
     y_train[indicator] = prediction[indicator]
 
     # return y_train, train_mask
-    return torch.LongTensor(y_train.argmax(1)),\
+    return torch.LongTensor(y_train.argmax(1)), \
            np.arange(adj.shape[0])[train_mask]
+
 
 def get_mask(idx, labels):
     mask = np.zeros(labels.shape[0], dtype=np.bool)
     mask[idx] = 1
     return mask
+
 
 def get_y(idx, labels):
     mx = np.zeros(labels.shape)
@@ -202,6 +215,8 @@ class SMP:
 
 
 from sklearn.metrics.pairwise import cosine_similarity
+
+
 def label_correction(embeddings, labels, idx_sampled, idx_train=None, is_numpy=False):
     get_sim = cosine_similarity
     embeddings = embeddings.cpu().numpy()
@@ -236,8 +251,8 @@ def label_correction(embeddings, labels, idx_sampled, idx_train=None, is_numpy=F
             else:
                 eta[i] = min(S[i])
         # get prototype
-        rho[eta>=0.95] = 0
-        prototypes = perm[np.argsort(rho)[-n_rho: ]]
+        rho[eta >= 0.95] = 0
+        prototypes = perm[np.argsort(rho)[-n_rho:]]
         # correct label
         S_proto = get_sim(embeddings[idx_sampled], embeddings[prototypes])
         # for i in range(len(labels)):
@@ -267,6 +282,7 @@ def to_scipy(tensor):
         values = tensor[indices[0], indices[1]]
         return sp.csr_matrix((values.cpu().numpy(), indices.cpu().numpy()), shape=tensor.shape)
 
+
 def is_sparse_tensor(tensor):
     # if hasattr(tensor, 'nnz'):
     if tensor.layout == torch.sparse_coo:
@@ -288,15 +304,16 @@ def get_few_labeled_splits(labels, train_size, seed=None):
     idx_train = []
     idx_unlabeled = []
     for i in range(nclass):
-        labels_i = idx[labels==i]
+        labels_i = idx[labels == i]
         labels_i = np.random.permutation(labels_i)
         idx_train = np.hstack((idx_train, labels_i[: train_size])).astype(np.int)
-        idx_unlabeled = np.hstack((idx_unlabeled, labels_i[train_size: ])).astype(np.int)
+        idx_unlabeled = np.hstack((idx_unlabeled, labels_i[train_size:])).astype(np.int)
 
     idx_unlabeled = np.random.permutation(idx_unlabeled)
     idx_val = idx_unlabeled[: 500]
     idx_test = idx_unlabeled[500: 1500]
     return idx_train, idx_val, idx_test
+
 
 def get_splits_each_class(labels, train_size, seed=None):
     '''
@@ -312,13 +329,11 @@ def get_splits_each_class(labels, train_size, seed=None):
     idx_val = []
     idx_test = []
     for i in range(nclass):
-        labels_i = idx[labels==i]
+        labels_i = idx[labels == i]
         labels_i = np.random.permutation(labels_i)
         idx_train = np.hstack((idx_train, labels_i[: train_size])).astype(np.int)
-        idx_val = np.hstack((idx_val, labels_i[train_size: 2*train_size])).astype(np.int)
-        idx_test = np.hstack((idx_test, labels_i[2*train_size: ])).astype(np.int)
+        idx_val = np.hstack((idx_val, labels_i[train_size: 2 * train_size])).astype(np.int)
+        idx_test = np.hstack((idx_test, labels_i[2 * train_size:])).astype(np.int)
 
     return np.random.permutation(idx_train), np.random.permutation(idx_val), \
            np.random.permutation(idx_test)
-
-

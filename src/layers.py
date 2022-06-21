@@ -8,7 +8,6 @@ from torch import nn
 import torch.nn.functional as F
 
 
-
 class GraphConvolutionBS(Module):
     """
     GCN Layer with BN, Self-loop and Res connection.
@@ -65,7 +64,6 @@ class GraphConvolutionBS(Module):
             glorot(self.weight)
         zeros(self.bias)
 
-
     def forward(self, input, adj):
         support = torch.mm(input, self.weight)
         output = torch.spmm(adj, support)
@@ -90,6 +88,7 @@ class GraphConvolutionBS(Module):
         return self.__class__.__name__ + ' (' \
                + str(self.in_features) + ' -> ' \
                + str(self.out_features) + ')'
+
 
 class GraphBaseBlock(Module):
     """
@@ -460,24 +459,24 @@ class TPGCNBlock(Module):
                  aggrmethod=None, dense=None):
         super(TPGCNBlock, self).__init__()
         self.transform_layers = GraphBaseBlock(in_features=in_features,
-                                    out_features=out_features,
-                                    nbaselayer=nbaselayer//2,
-                                    withbn=withbn,
-                                    withloop=withloop,
-                                    activation=activation,
-                                    dropout=dropout,
-                                    dense=False,
-                                    aggrmethod="nores")
+                                               out_features=out_features,
+                                               nbaselayer=nbaselayer // 2,
+                                               withbn=withbn,
+                                               withloop=withloop,
+                                               activation=activation,
+                                               dropout=dropout,
+                                               dense=False,
+                                               aggrmethod="nores")
 
         self.propagate_layers = GraphBaseBlock(in_features=in_features,
-                                    out_features=out_features,
-                                    nbaselayer=nbaselayer//2,
-                                    withbn=withbn,
-                                    withloop=withloop,
-                                    activation=activation,
-                                    dropout=dropout,
-                                    dense=False,
-                                    aggrmethod="nores")
+                                               out_features=out_features,
+                                               nbaselayer=nbaselayer // 2,
+                                               withbn=withbn,
+                                               withloop=withloop,
+                                               activation=activation,
+                                               dropout=dropout,
+                                               dense=False,
+                                               aggrmethod="nores")
 
     def forward(self, input, adj):
         identity = torch.eye(adj.shape[0]).to(adj.device)
@@ -496,7 +495,6 @@ class TPGCNBlock(Module):
                                               self.model.out_features)
 
 
-
 def glorot(tensor):
     if tensor is not None:
         stdv = math.sqrt(6.0 / (tensor.size(-2) + tensor.size(-1)))
@@ -506,4 +504,3 @@ def glorot(tensor):
 def zeros(tensor):
     if tensor is not None:
         tensor.data.fill_(0)
-

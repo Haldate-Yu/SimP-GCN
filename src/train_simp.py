@@ -89,10 +89,10 @@ parser.add_argument("--nbaseblocklayer", type=int, default=1,
                     help="The number of layers in each baseblock")
 parser.add_argument("--aggrmethod", default="default",
                     help="The aggrmethod for the layer aggreation. The options includes add and concat. Only valid in resgcn, densegcn and inecptiongcn")
-parser.add_argument("--task_type", default="full", help="The node classification task type (full and semi). Only valid for cora, citeseer and pubmed dataset.")
+parser.add_argument("--task_type", default="full",
+                    help="The node classification task type (full and semi). Only valid for cora, citeseer and pubmed dataset.")
 
 args = parser.parse_args()
-
 
 if args.debug:
     print(args)
@@ -107,7 +107,6 @@ if args.aggrmethod == "default":
         args.aggrmethod = "add"
     else:
         args.aggrmethod = "concat"
-
 
 if args.fastmode and args.early_stopping > 0:
     args.early_stopping = 0
@@ -134,20 +133,20 @@ print("nclass: %d\tnfea:%d" % (nclass, nfeat))
 
 # The model
 model = SimPGCN(nfeat=nfeat,
-                 nhid=args.hidden,
-                 nclass=nclass,
-                 nhidlayer=args.nhiddenlayer,
-                 dropout=args.dropout,
-                 baseblock=args.type,
-                 inputlayer=args.inputlayer,
-                 outputlayer=args.outputlayer,
-                 nbaselayer=args.nbaseblocklayer,
-                 activation=F.relu,
-                 withbn=args.withbn,
-                 withloop=args.withloop,
-                 aggrmethod=args.aggrmethod,
-                 mixmode=args.mixmode,
-				 nnodes=sampler.adj.shape[0], gamma=args.gamma, bias_init=args.bias_init)
+                nhid=args.hidden,
+                nclass=nclass,
+                nhidlayer=args.nhiddenlayer,
+                dropout=args.dropout,
+                baseblock=args.type,
+                inputlayer=args.inputlayer,
+                outputlayer=args.outputlayer,
+                nbaselayer=args.nbaseblocklayer,
+                activation=F.relu,
+                withbn=args.withbn,
+                withloop=args.withloop,
+                aggrmethod=args.aggrmethod,
+                mixmode=args.mixmode,
+                nnodes=sampler.adj.shape[0], gamma=args.gamma, bias_init=args.bias_init)
 
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
@@ -155,7 +154,6 @@ optimizer = optim.Adam(model.parameters(),
 # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=50, factor=0.618)
 # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[200, 300, 400, 500, 600, 700], gamma=0.5)
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100000], gamma=1)
-
 
 # convert to cuda
 if args.cuda:
@@ -169,7 +167,6 @@ if args.cuda or args.mixmode:
     idx_train = idx_train.cuda()
     idx_val = idx_val.cuda()
     idx_test = idx_test.cuda()
-
 
 if args.warm_start is not None and args.warm_start != "":
     early_stopping = EarlyStopping(fname=args.warm_start, verbose=False)
@@ -187,6 +184,7 @@ if not args.no_tensorboard:
         shutil.rmtree(dirpath)
     tb_writer = SummaryWriter(logdir=dirpath)
 
+
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
@@ -194,7 +192,6 @@ def get_lr(optimizer):
 
 # define the training function.
 def train(epoch, train_adj, train_fea, idx_train, val_adj=None, val_fea=None):
-
     if val_adj is None:
         val_adj = train_adj
         val_fea = train_fea
@@ -249,6 +246,7 @@ def train(epoch, train_adj, train_fea, idx_train, val_adj=None, val_fea=None):
     except:
         return (loss_train.item(), acc_train.item(), loss_val, acc_val, loss_ssl, loss_total.item(), train_t)
 
+
 def test(test_adj, test_fea):
     model.eval()
     # output = model(test_fea, test_adj)
@@ -256,7 +254,6 @@ def test(test_adj, test_fea):
 
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
-
 
     print("Test set results:",
           "loss= {:.4f}".format(loss_test.item()),
@@ -275,7 +272,6 @@ loss_ssl = np.zeros((args.epochs,))
 
 sampling_t = 0
 
-
 #####################################
 nclass = max(labels).item() + 1
 
@@ -284,23 +280,26 @@ if args.ssl is None or args.lambda_ == 0 or args.ssl == 'Base':
     args.ssl = 'Base'
 
 if args.ssl == 'PairwiseAttrSim':
-    ssl_agent = PairwiseAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args, device='cuda')
+    ssl_agent = PairwiseAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                                device='cuda')
     optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.linear.parameters()),
                            lr=args.lr, weight_decay=args.weight_decay)
-    tmp_agent = MergedKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args, device='cuda')
+    tmp_agent = MergedKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                               device='cuda')
     adj_knn = tmp_agent.A_feat
     adj_knn = preprocess_adj_noloop(adj_knn, 'cuda')
 
 if args.ssl == 'MergedKNNGraph':
-    ssl_agent = MergedKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args, device='cuda')
+    ssl_agent = MergedKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                               device='cuda')
     adj_knn = sparse_mx_to_torch_sparse_tensor(ssl_agent.A_feat).cuda()
 
 if args.ssl == 'KNNPlusPairAttr':
-    ssl_agent = KNNPlusPairAttr(sampler.adj, sampler.features, sampler.labels, idx_train=idx_train, nhid=args.hidden, args=args, device='cuda')
+    ssl_agent = KNNPlusPairAttr(sampler.adj, sampler.features, sampler.labels, idx_train=idx_train, nhid=args.hidden,
+                                args=args, device='cuda')
     optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.agent2.linear.parameters()),
                            lr=args.lr, weight_decay=args.weight_decay)
     adj_knn = sparse_mx_to_torch_sparse_tensor(ssl_agent.agent1.A_feat).cuda()
-
 
 for epoch in range(args.epochs):
     input_idx_train = idx_train
@@ -342,11 +341,13 @@ for epoch in range(args.epochs):
               't_time: {:.4f}s'.format(outputs[6]))
 
     if args.no_tensorboard is False:
-        tb_writer.add_scalars('Loss', {'class': outputs[0], 'ssl': outputs[4] , 'total': outputs[5], 'val': outputs[2]}, epoch)
+        tb_writer.add_scalars('Loss', {'class': outputs[0], 'ssl': outputs[4], 'total': outputs[5], 'val': outputs[2]},
+                              epoch)
         tb_writer.add_scalars('Accuracy', {'train': outputs[1], 'val': outputs[3]}, epoch)
 
-
-    loss_train[epoch], acc_train[epoch], loss_val[epoch], acc_val[epoch], loss_ssl[epoch] = outputs[0], outputs[1], outputs[2], outputs[3], outputs[4]
+    loss_train[epoch], acc_train[epoch], loss_val[epoch], acc_val[epoch], loss_ssl[epoch] = outputs[0], outputs[1], \
+                                                                                            outputs[2], outputs[3], \
+                                                                                            outputs[4]
 
     if args.early_stopping > 0 and early_stopping.early_stop:
         print("Early stopping.")
@@ -356,8 +357,10 @@ for epoch in range(args.epochs):
 if args.early_stopping > 0:
     model.load_state_dict(early_stopping.load_checkpoint())
     # print('=== best score: %s, epoch %s ===' % (early_stopping.best_score, early_stopping.best_epoch))
-    print('=== best score: %s, loss_val: %s, epoch %s ===' % (early_stopping.best_score, loss_val[early_stopping.best_epoch], early_stopping.best_epoch))
-    print('For this epoch, val loss: %s, val acc: %s' % (loss_val[early_stopping.best_epoch], acc_val[early_stopping.best_epoch]))
+    print('=== best score: %s, loss_val: %s, epoch %s ===' % (
+    early_stopping.best_score, loss_val[early_stopping.best_epoch], early_stopping.best_epoch))
+    print('For this epoch, val loss: %s, val acc: %s' % (
+    loss_val[early_stopping.best_epoch], acc_val[early_stopping.best_epoch]))
 
 if args.debug:
     print("Optimization Finished!")
@@ -374,12 +377,11 @@ if args.mixmode:
 
 (loss_test, acc_test) = test(test_adj, test_fea)
 print("%.6f\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f" % (
-loss_train[-1], loss_val[-1], loss_test, acc_train[-1], acc_val[-1], acc_test))
+    loss_train[-1], loss_val[-1], loss_test, acc_train[-1], acc_val[-1], acc_test))
 print('Self-Supervised Type: %s' % args.ssl)
 
 nnodes = sampler.adj.shape[0]
-print('len(idx_train)/len(adj.shape[0])= ',len(idx_train)/nnodes)
+print('len(idx_train)/len(adj.shape[0])= ', len(idx_train) / nnodes)
 
 if not args.no_tensorboard:
     tb_writer.close()
-

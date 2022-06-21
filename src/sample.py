@@ -7,8 +7,10 @@ from normalization import fetch_normalization
 from sklearn.decomposition import PCA, TruncatedSVD
 from ssl_utils import get_splits_each_class
 
+
 class Sampler:
     """Sampling the input graph data."""
+
     def __init__(self, dataset, args, data_path="data", task_type="full"):
         self.dataset = dataset
         self.data_path = data_path
@@ -31,9 +33,9 @@ class Sampler:
             self.idx_train, self.idx_val, self.idx_test = data.idx_train, data.idx_val, data.idx_test
             if args.ptb_rate != 10:
                 perturbed_data = PrePtbDataset(root='/tmp/',
-                        name=args.dataset,
-                        attack_method='meta',
-                        ptb_rate=args.ptb_rate)
+                                               name=args.dataset,
+                                               attack_method='meta',
+                                               ptb_rate=args.ptb_rate)
                 self.adj = perturbed_data.adj
 
         self.train_adj = self.adj
@@ -47,7 +49,7 @@ class Sampler:
 
         if args.train_size and not args.fastmode:
             self.idx_train, self.idx_val, self.idx_test = get_splits_each_class(
-                    labels=self.labels, train_size=args.train_size)
+                labels=self.labels, train_size=args.train_size)
             # print(self.idx_train[:10])
             # from ssl_utils import get_few_labeled_splits
             # self.idx_train, self.idx_val, self.idx_test = get_few_labeled_splits(
@@ -56,8 +58,8 @@ class Sampler:
         if args.fastmode:
             from deeprobust.graph.utils import get_train_test
             self.idx_train, self.idx_test = get_train_test(
-                    nnodes=self.adj.shape[0], test_size=1-args.label_rate,
-                    stratify=self.labels)
+                nnodes=self.adj.shape[0], test_size=1 - args.label_rate,
+                stratify=self.labels)
             self.idx_test = self.idx_test[:1000]
 
         self.labels_torch = torch.LongTensor(self.labels)
@@ -74,7 +76,7 @@ class Sampler:
         self.nclass = int(self.labels.max().item() + 1)
         self.trainadj_cache = {}
         self.adj_cache = {}
-        #print(type(self.train_adj))
+        # print(type(self.train_adj))
         self.degree_p = None
 
     def _preprocess_adj(self, normalization, adj, cuda):
@@ -115,7 +117,7 @@ class Sampler:
 
         nnz = self.train_adj.nnz
         perm = np.random.permutation(nnz)
-        preserve_nnz = int(nnz*percent)
+        preserve_nnz = int(nnz * percent)
         perm = perm[:preserve_nnz]
         r_adj = sp.coo_matrix((self.train_adj.data[perm],
                                (self.train_adj.row[perm],
@@ -171,7 +173,6 @@ class Sampler:
         fea = self._preprocess_fea(self.train_features, cuda)
         return r_adj, fea
 
-
     def get_test_set(self, normalization, cuda):
         """
         Return the test set.
@@ -202,9 +203,7 @@ class Sampler:
             return self.labels_torch.cuda(), self.idx_train_torch.cuda(), self.idx_val_torch.cuda(), self.idx_test_torch.cuda()
         return self.labels_torch, self.idx_train_torch, self.idx_val_torch, self.idx_test_torch
 
-
-
-###############
+    ###############
 
     def independent_labeled(self, percent, normalization, cuda):
         """
@@ -226,7 +225,3 @@ class Sampler:
         r_adj = self._preprocess_adj(normalization, r_adj, cuda)
         fea = self._preprocess_fea(self.train_features, cuda)
         return r_adj, fea
-
-
-
-

@@ -12,6 +12,7 @@ import scipy.sparse as sp
 from tqdm import tqdm
 from itertools import product
 
+
 class AttrSim:
 
     def __init__(self, adj, features, labels=None, args=None, nclass=4):
@@ -19,7 +20,7 @@ class AttrSim:
             self.features = to_scipy(features)
         else:
             self.features = features.cpu().numpy()
-        self.features[self.features!=0] = 1
+        self.features[self.features != 0] = 1
 
         self.labels = labels
         self.adj = adj
@@ -40,16 +41,16 @@ class AttrSim:
         if not os.path.exists(f'saved/{args.dataset}_{k}_attrsim_sampled_idx.npy'):
             try:
                 indices_sorted = sims.argsort(1)
-                idx = np.arange(k, sims.shape[0]-k)
+                idx = np.arange(k, sims.shape[0] - k)
                 selected = np.hstack((indices_sorted[:, :k],
-                    indices_sorted[:, -k-1:]))
+                                      indices_sorted[:, -k - 1:]))
 
                 selected_set = set()
                 for i in range(len(sims)):
                     for pair in product([i], selected[i]):
                         if pair[0] > pair[1]:
                             pair = (pair[1], pair[0])
-                        if  pair[0] == pair[1]:
+                        if pair[0] == pair[1]:
                             continue
                         selected_set.add(pair)
 
@@ -57,9 +58,9 @@ class AttrSim:
                 selected_set = set()
                 for ii, row in tqdm(enumerate(sims)):
                     row = row.argsort()
-                    idx = np.arange(k, sims.shape[0]-k)
+                    idx = np.arange(k, sims.shape[0] - k)
                     sampled = np.random.choice(idx, k, replace=False)
-                    for node in np.hstack((row[:k], row[-k-1:], row[sampled])):
+                    for node in np.hstack((row[:k], row[-k - 1:], row[sampled])):
                         if ii > node:
                             pair = (node, ii)
                         else:
@@ -76,7 +77,7 @@ class AttrSim:
         self.node_pairs = (sampled[0], sampled[1])
 
         self.sims = sims
-        return torch.FloatTensor(sims[self.node_pairs]).reshape(-1,1)
+        return torch.FloatTensor(sims[self.node_pairs]).reshape(-1, 1)
 
     def get_class(self):
         args = self.args
@@ -91,15 +92,13 @@ class AttrSim:
         # if not os.path.exists(f'{args.dataset}_{k}_attrsim_sampled_idx.npy'):
         if not os.path.exists(f'saved/{args.dataset}_{k}_attrsim_pseudo_label.npy'):
             indices_sorted = sims.argsort(1)
-            idx = np.arange(k, sims.shape[0]-k)
+            idx = np.arange(k, sims.shape[0] - k)
             selected = np.hstack((indices_sorted[:, :k],
-                indices_sorted[:, -k-1:]))
-
+                                  indices_sorted[:, -k - 1:]))
 
             for ii in range(len(sims)):
                 sims[ii, indices_sorted[ii, :k]] = 0
-                sims[ii, indices_sorted[ii, -k-1:]] = 1
-
+                sims[ii, indices_sorted[ii, -k - 1:]] = 1
 
             from itertools import product
             selected_set = set()
@@ -107,7 +106,7 @@ class AttrSim:
                 for pair in product([i], selected[i]):
                     if pair[0] > pair[1]:
                         pair = (pair[1], pair[0])
-                    if  pair[0] == pair[1]:
+                    if pair[0] == pair[1]:
                         continue
                     selected_set.add(pair)
 
