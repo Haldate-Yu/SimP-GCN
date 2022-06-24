@@ -91,7 +91,6 @@ class PairwiseAttrSim(Base):
             embeddings = self.linear(torch.abs(embeddings0 - embeddings1))
             loss = F.mse_loss(embeddings, self.pseudo_labels, reduction='mean')
 
-        # print(loss)
         return loss
 
     def classification_loss(self, embeddings):
@@ -337,6 +336,7 @@ def preprocess_features(features, device):
 def preprocess_adj(adj, device):
     # adj_normalizer = fetch_normalization(normalization)
     adj_normalizer = aug_normalized_adjacency
+    # DAD normalize
     r_adj = adj_normalizer(adj)
     r_adj = sparse_mx_to_torch_sparse_tensor(r_adj).float()
     r_adj = r_adj.to(device)

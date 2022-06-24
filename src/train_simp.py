@@ -358,9 +358,9 @@ if args.early_stopping > 0:
     model.load_state_dict(early_stopping.load_checkpoint())
     # print('=== best score: %s, epoch %s ===' % (early_stopping.best_score, early_stopping.best_epoch))
     print('=== best score: %s, loss_val: %s, epoch %s ===' % (
-    early_stopping.best_score, loss_val[early_stopping.best_epoch], early_stopping.best_epoch))
+        early_stopping.best_score, loss_val[early_stopping.best_epoch], early_stopping.best_epoch))
     print('For this epoch, val loss: %s, val acc: %s' % (
-    loss_val[early_stopping.best_epoch], acc_val[early_stopping.best_epoch]))
+        loss_val[early_stopping.best_epoch], acc_val[early_stopping.best_epoch]))
 
 if args.debug:
     print("Optimization Finished!")
