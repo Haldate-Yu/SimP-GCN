@@ -29,10 +29,6 @@ class AttrSim:
         self.args = args
 
     def get_label(self):
-        # test
-        print(self.adj, type(self.adj))
-        print(self.features, type(self.features))
-
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_cosine_sims.npy'):
             sims = cosine_similarity(self.features)
@@ -143,13 +139,27 @@ class ECTDSim:
     def _get_pinv_similarity(self, adj):
         # adj - scipy.coo_matrix, no self-loops
         # features - numpy.ndarray,
-        pass
+        adj = adj.toarray()
+        deg = adj.sum(1)
+        lap = deg - adj
+        lap_pinv = np.linalg.pinv(lap)
+
+        lap_diag = np.diagonal(lap_pinv)
+        lap_diag_full = np.zeros((adj.shape[0], adj.shape[1]))
+        lap_diag_full[:] = lap_diag.T
+        lap_diag_pair = lap_diag_full * lap_diag_full.T
+        lap_diag_pair = np.power(lap_diag_pair, -0.5)
+        lap_diag_pair[np.isinf(lap_diag_pair)] = 0.
+
+        pinv_sim = lap_pinv * lap_diag_pair
+        return pinv_sim
 
     def get_label(self):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_ectd_sims.npy'):
             from sklearn.metrics.pairwise import cosine_similarity
-            sims = cosine_similarity(self.features)
+            # sims = cosine_similarity(self.features)
+            sims = self._get_pinv_similarity(self.adj)
             np.save(f'saved/{args.dataset}_ectd_sims.npy', sims)
         else:
             sims = np.load(f'saved/{args.dataset}_ectd_sims.npy')
@@ -256,14 +266,26 @@ class MFPTSim:
         self.nclass = nclass
         self.args = args
 
-    def _get_mfpt_similarity(self, adj):
-        print(adj, type(adj))
+    def _get_mfpt_similarity(self, adj, features):
+        # adj - scipy.coo_matrix, no self-loops
+        # features - numpy.ndarray,
+        adj = adj.toarray()
+        deg = adj.sum(1)
+        lap = deg - adj
+        lap_pinv = np.linalg.pinv(lap)
+        # eigen
+        eig_vals, eig_vectors = np.linalg.eig(lap_pinv)
+        eig_vectors = np.real(eig_vectors)
+        features = eig_vectors @ features
+
+        return cosine_similarity(features)
 
     def get_label(self):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_mfpt_sims.npy'):
             from sklearn.metrics.pairwise import cosine_similarity
-            sims = cosine_similarity(self.features)
+            # sims = cosine_similarity(self.features)
+            sims = self._get_mfpt_similarity(self.adj, self.features)
             np.save(f'saved/{args.dataset}_mfpt_sims.npy', sims)
         else:
             sims = np.load(f'saved/{args.dataset}_mfpt_sims.npy')
@@ -354,3 +376,37 @@ class MFPTSim:
         print('number of sampled:', len(sampled[0]))
         self.node_pairs = (sampled[0], sampled[1])
         return pseudo_labels
+
+
+def ectd_similarity(adj: sp.coo_matrix):
+    adj = adj.toarray()
+    deg = adj.sum(1)
+    lap = deg - adj
+    # lij
+    lap_pinv = np.linalg.pinv(lap)
+
+    lap_diag = np.diagonal(lap_pinv)
+    lap_diag_full = np.zeros((adj.shape[0], adj.shape[1]))
+    lap_diag_full[:] = lap_diag.T
+
+    # 1 / sqrt(lii * ljj)
+    lap_diag_pair = lap_diag_full * lap_diag_full.T
+    lap_diag_pair = np.power(lap_diag_pair, -0.5)
+    lap_diag_pair[np.isinf(lap_diag_pair)] = 0.
+
+    # cosine L+ similarity
+    pinv_sim = lap_pinv * lap_diag_pair
+    return pinv_sim
+
+
+def mfpt_similarity(adj, features):
+    adj = adj.toarray()
+    deg = adj.sum(1)
+    lap = deg - adj
+    lap_pinv = np.linalg.pinv(lap)
+    # eigen
+    eig_vals, eig_vectors = np.linalg.eig(lap_pinv)
+    eig_vectors = np.real(eig_vectors)
+    features = eig_vectors @ features
+
+    return cosine_similarity(features)

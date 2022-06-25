@@ -301,6 +301,26 @@ if args.ssl == 'KNNPlusPairAttr':
                            lr=args.lr, weight_decay=args.weight_decay)
     adj_knn = sparse_mx_to_torch_sparse_tensor(ssl_agent.agent1.A_feat).cuda()
 
+if args.ssl == 'ECTDSim':
+    ssl_agent = ECTDAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                            device='cuda')
+    optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.linear.parameters()),
+                           lr=args.lr, weight_decay=args.weight_decay)
+    tmp_agent = ECTDKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                             device='cuda')
+    adj_knn = tmp_agent.A_feat
+    adj_knn = preprocess_adj_noloop(adj_knn, 'cuda')
+
+if args.ssl == 'MFPTSim':
+    ssl_agent = MFPTAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                            device='cuda')
+    optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.linear.parameters()),
+                           lr=args.lr, weight_decay=args.weight_decay)
+    tmp_agent = MFPTKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                             device='cuda')
+    adj_knn = tmp_agent.A_feat
+    adj_knn = preprocess_adj_noloop(adj_knn, 'cuda')
+
 for epoch in range(args.epochs):
     input_idx_train = idx_train
     sampling_t = time.time()
