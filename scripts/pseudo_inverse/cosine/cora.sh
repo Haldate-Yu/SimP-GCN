@@ -2,7 +2,7 @@
 python ./src/train_simp.py \
 --dataset cora \
 --ptb_rate 0 \
---bias_init 2 \
+--bias_init 0 \
 --k 20 \
 --gamma 0.01 \
 --lambda_ 50 \

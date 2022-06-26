@@ -4,12 +4,12 @@ python ./src/train_simp.py \
 --ptb_rate 0 \
 --bias_init 0 \
 --k 20 \
---gamma 0.1 \
+--gamma 0.01 \
 --lambda_ 1 \
 --seed 15 \
 --epochs 500 \
 --lr 0.05 \
---hidden 32 \
+--hidden 16 \
 --weight_decay 5e-04 \
 --ssl ECTDSim \
 --datapath data// \

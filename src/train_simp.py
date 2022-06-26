@@ -305,7 +305,7 @@ if args.ssl == 'ECTDSim':
     # ssl_agent = ECTDAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
     #                         device='cuda')
     ssl_agent = PairwiseAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
-                                    device='cuda')
+                                device='cuda')
     optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.linear.parameters()),
                            lr=args.lr, weight_decay=args.weight_decay)
     tmp_agent = ECTDKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
@@ -322,6 +322,18 @@ if args.ssl == 'MFPTSim':
                            lr=args.lr, weight_decay=args.weight_decay)
     tmp_agent = MFPTKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
                              device='cuda')
+    adj_knn = tmp_agent.A_feat
+    adj_knn = preprocess_adj_noloop(adj_knn, 'cuda')
+
+if args.ssl == 'NormMFPTSim':
+    ssl_agent = NormMFPTAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                                device='cuda')
+    # ssl_agent = PairwiseAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+    #                                 device='cuda')
+    optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.linear.parameters()),
+                           lr=args.lr, weight_decay=args.weight_decay)
+    tmp_agent = NormMFPTKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                                 device='cuda')
     adj_knn = tmp_agent.A_feat
     adj_knn = preprocess_adj_noloop(adj_knn, 'cuda')
 

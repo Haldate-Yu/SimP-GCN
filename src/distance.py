@@ -143,16 +143,16 @@ class ECTDSim:
         deg = adj.sum(1)
         lap = deg - adj
         lap_pinv = np.linalg.pinv(lap)
-
-        lap_diag = np.diagonal(lap_pinv)
-        lap_diag_full = np.zeros((adj.shape[0], adj.shape[1]))
-        lap_diag_full[:] = lap_diag.T
-        lap_diag_pair = lap_diag_full * lap_diag_full.T
-        lap_diag_pair = np.power(lap_diag_pair, -0.5)
-        lap_diag_pair[np.isinf(lap_diag_pair)] = 0.
-
-        pinv_sim = lap_pinv * lap_diag_pair
-        return pinv_sim
+        return cosine_similarity(lap_pinv)
+        # lap_diag = np.diagonal(lap_pinv)
+        # lap_diag_full = np.zeros((adj.shape[0], adj.shape[1]))
+        # lap_diag_full[:] = lap_diag.T
+        # lap_diag_pair = lap_diag_full * lap_diag_full.T
+        # lap_diag_pair = np.power(lap_diag_pair, -0.5)
+        # lap_diag_pair[np.isinf(lap_diag_pair)] = 0.
+        #
+        # pinv_sim = lap_pinv * lap_diag_pair
+        # return pinv_sim
 
     def get_label(self):
         args = self.args
@@ -517,21 +517,23 @@ def ectd_similarity(adj: sp.coo_matrix):
     adj = adj.toarray()
     deg = adj.sum(1)
     lap = deg - adj
+
     # lij
     lap_pinv = np.linalg.pinv(lap)
+    return cosine_similarity(lap_pinv)
 
-    lap_diag = np.diagonal(lap_pinv)
-    lap_diag_full = np.zeros((adj.shape[0], adj.shape[1]))
-    lap_diag_full[:] = lap_diag.T
-
-    # 1 / sqrt(lii * ljj)
-    lap_diag_pair = lap_diag_full * lap_diag_full.T
-    lap_diag_pair = np.power(lap_diag_pair, -0.5)
-    lap_diag_pair[np.isinf(lap_diag_pair)] = 0.
-
-    # cosine L+ similarity
-    pinv_sim = lap_pinv * lap_diag_pair
-    return pinv_sim
+    # lap_diag = np.diagonal(lap_pinv)
+    # lap_diag_full = np.zeros((adj.shape[0], adj.shape[1]))
+    # lap_diag_full[:] = lap_diag.T
+    #
+    # # 1 / sqrt(lii * ljj)
+    # lap_diag_pair = lap_diag_full * lap_diag_full.T
+    # lap_diag_pair = np.power(lap_diag_pair, -0.5)
+    # lap_diag_pair[np.isinf(lap_diag_pair)] = 0.
+    #
+    # # cosine L+ similarity
+    # pinv_sim = lap_pinv * lap_diag_pair
+    # return pinv_sim
 
 
 def mfpt_similarity(adj, features):

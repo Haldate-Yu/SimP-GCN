@@ -5,11 +5,11 @@ python ./src/train_simp.py \
 --bias_init 0 \
 --k 20 \
 --gamma 1 \
---lambda_ 0.1 \
+--lambda_ 0.5 \
 --seed 15 \
 --epochs 500 \
 --lr 0.05 \
---hidden 32 \
+--hidden 48 \
 --weight_decay 5e-04 \
 --ssl ECTDSim \
 --datapath data// \

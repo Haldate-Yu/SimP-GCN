@@ -4,7 +4,7 @@ python ./src/train_simp.py \
 --ptb_rate 0 \
 --bias_init 2 \
 --k 20 \
---gamma 0.01 \
+--gamma 1 \
 --lambda_ 100 \
 --seed 15 \
 --epochs 200 \

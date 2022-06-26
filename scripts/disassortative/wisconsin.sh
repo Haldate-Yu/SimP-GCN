@@ -9,7 +9,7 @@ python ./src/train_simp.py \
 --seed 15 \
 --epochs 500 \
 --lr 0.05 \
---hidden 32 \
+--hidden 16 \
 --weight_decay 5e-04 \
 --ssl PairwiseAttrSim \
 --datapath data// \
