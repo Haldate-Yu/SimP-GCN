@@ -11,7 +11,7 @@ python ./src/train_simp.py \
 --lr 0.05 \
 --hidden 32 \
 --weight_decay 5e-04 \
---ssl PairwiseAttrSim \
+--ssl MFPTSim \
 --datapath data// \
 --type mutigcn \
 --nhiddenlayer 1 \

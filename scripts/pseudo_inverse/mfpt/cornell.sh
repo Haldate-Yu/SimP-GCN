@@ -9,9 +9,9 @@ python ./src/train_simp.py \
 --seed 15 \
 --epochs 500 \
 --lr 0.05 \
---hidden 32 \
+--hidden 96 \
 --weight_decay 5e-04 \
---ssl PairwiseAttrSim \
+--ssl MFPTSim \
 --datapath data// \
 --type mutigcn \
 --nhiddenlayer 1 \

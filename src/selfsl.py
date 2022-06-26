@@ -444,10 +444,10 @@ class MFPTKNNGraph(Base):
 
         if not os.path.exists(f'saved/{args.dataset}_mfpt_sims_{k}.npz'):
             features = np.copy(features)
-            features[features != 0] = 1
+            # features[features != 0] = 1
             # !! knn here !!
             # sims = cosine_similarity(features)
-            sims = mfpt_similarity(self.adj)
+            sims = mfpt_similarity(self.adj, features)
 
             sims[(np.arange(len(sims)), np.arange(len(sims)))] = 0
             for i in range(len(sims)):

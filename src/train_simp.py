@@ -302,10 +302,10 @@ if args.ssl == 'KNNPlusPairAttr':
     adj_knn = sparse_mx_to_torch_sparse_tensor(ssl_agent.agent1.A_feat).cuda()
 
 if args.ssl == 'ECTDSim':
-    ssl_agent = ECTDAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
-                            device='cuda')
-    # ssl_agent = PairwiseAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
-    #                                 device='cuda')
+    # ssl_agent = ECTDAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+    #                         device='cuda')
+    ssl_agent = PairwiseAttrSim(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
+                                    device='cuda')
     optimizer = optim.Adam(list(model.parameters()) + list(ssl_agent.linear.parameters()),
                            lr=args.lr, weight_decay=args.weight_decay)
     tmp_agent = ECTDKNNGraph(sampler.adj, sampler.features, idx_train=idx_train, nhid=args.hidden, args=args,
