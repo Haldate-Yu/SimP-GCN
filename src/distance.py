@@ -157,7 +157,7 @@ class ECTDSim:
     def get_label(self):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_ectd_sims.npy'):
-            from sklearn.metrics.pairwise import cosine_similarity
+            # cosine similarity 1
             # sims = cosine_similarity(self.features)
             sims = self._get_pinv_similarity(self.adj)
             np.save(f'saved/{args.dataset}_ectd_sims.npy', sims)
@@ -210,8 +210,9 @@ class ECTDSim:
     def get_class(self):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_ectd_sims.npy'):
-            from sklearn.metrics.pairwise import cosine_similarity
-            sims = cosine_similarity(self.features)
+            # cosine similarity 2
+            # sims = cosine_similarity(self.features)
+            sims = self._get_pinv_similarity(self.adj)
             np.save(f'saved/{args.dataset}_ectd_sims.npy', sims)
         else:
             sims = np.load(f'saved/{args.dataset}_ectd_sims.npy')
@@ -283,7 +284,7 @@ class MFPTSim:
     def get_label(self):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_mfpt_sims.npy'):
-            from sklearn.metrics.pairwise import cosine_similarity
+            # cosine similarity 1
             # sims = cosine_similarity(self.features)
             sims = self._get_mfpt_similarity(self.adj, self.features)
             np.save(f'saved/{args.dataset}_mfpt_sims.npy', sims)
@@ -336,8 +337,9 @@ class MFPTSim:
     def get_class(self):
         args = self.args
         if not os.path.exists(f'saved/{args.dataset}_mfpt_sims.npy'):
-            from sklearn.metrics.pairwise import cosine_similarity
-            sims = cosine_similarity(self.features)
+            # cosine similarity 2
+            # sims = cosine_similarity(self.features)
+            sims = self._get_mfpt_similarity(self.adj, self.features)
             np.save(f'saved/{args.dataset}_mfpt_sims.npy', sims)
         else:
             sims = np.load(f'saved/{args.dataset}_mfpt_sims.npy')
@@ -378,6 +380,139 @@ class MFPTSim:
         return pseudo_labels
 
 
+class NormMFPTSim:
+
+    def __init__(self, adj, features, labels=None, args=None, nclass=4):
+        if args.dataset == 'nell':
+            self.features = to_scipy(features)
+        else:
+            self.features = features.cpu().numpy()
+        self.features[self.features != 0] = 1
+
+        self.labels = labels
+        self.adj = adj
+        self.nclass = nclass
+        self.args = args
+
+    def _get_mfpt_similarity(self, adj, features):
+        # adj - scipy.coo_matrix, no self-loops
+        # features - numpy.ndarray,
+        adj = adj.toarray() + np.identity(adj.shape[0])
+
+        # normalized form
+        d_inv_sqrt = np.power(deg, -0.5)
+        d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+        lap = np.identity(adj.shape[0]) - d_inv_sqrt.dot(adj).dot(d_inv_sqrt)
+        lap_pinv = np.linalg.pinv(lap)
+
+        # eigen
+        eig_vals, eig_vectors = np.linalg.eig(lap_pinv)
+        eig_vectors = np.real(eig_vectors)
+
+        features = eig_vectors @ features
+
+        return cosine_similarity(features)
+
+    def get_label(self):
+        args = self.args
+        if not os.path.exists(f'saved/{args.dataset}_norm_mfpt_sims.npy'):
+            from sklearn.metrics.pairwise import cosine_similarity
+            # cosine similarity 1
+            # sims = cosine_similarity(self.features)
+            sims = self._get_mfpt_similarity(self.adj, self.features)
+            np.save(f'saved/{args.dataset}_norm_mfpt_sims.npy', sims)
+        else:
+            sims = np.load(f'saved/{args.dataset}_norm_mfpt_sims.npy')
+
+        k = 5
+
+        if not os.path.exists(f'saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy'):
+            try:
+                indices_sorted = sims.argsort(1)
+                idx = np.arange(k, sims.shape[0] - k)
+                selected = np.hstack((indices_sorted[:, :k],
+                                      indices_sorted[:, -k - 1:]))
+
+                selected_set = set()
+                for i in range(len(sims)):
+                    for pair in product([i], selected[i]):
+                        if pair[0] > pair[1]:
+                            pair = (pair[1], pair[0])
+                        if pair[0] == pair[1]:
+                            continue
+                        selected_set.add(pair)
+
+            except MemoryError:
+                selected_set = set()
+                for ii, row in tqdm(enumerate(sims)):
+                    row = row.argsort()
+                    idx = np.arange(k, sims.shape[0] - k)
+                    sampled = np.random.choice(idx, k, replace=False)
+                    for node in np.hstack((row[:k], row[-k - 1:], row[sampled])):
+                        if ii > node:
+                            pair = (node, ii)
+                        else:
+                            pair = (ii, node)
+                        selected_set.add(pair)
+
+            sampled = np.array(list(selected_set)).transpose()
+            print(f'loading saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy')
+            np.save(f'saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy', sampled)
+        else:
+            print(f'loading saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy')
+            sampled = np.load(f'saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy')
+        print('number of sampled:', len(sampled[0]))
+        self.node_pairs = (sampled[0], sampled[1])
+
+        self.sims = sims
+        return torch.FloatTensor(sims[self.node_pairs]).reshape(-1, 1)
+
+    def get_class(self):
+        args = self.args
+        if not os.path.exists(f'saved/{args.dataset}_norm_mfpt_sims.npy'):
+            # knn similarity
+            # sims = cosine_similarity(self.features)
+            sims = self._get_mfpt_similarity(self.adj, self.features)
+            np.save(f'saved/{args.dataset}_norm_mfpt_sims.npy', sims)
+        else:
+            sims = np.load(f'saved/{args.dataset}_norm_mfpt_sims.npy')
+
+        k = 5
+
+        if not os.path.exists(f'saved/{args.dataset}_{k}_normmfptsim_pseudo_label.npy'):
+            indices_sorted = sims.argsort(1)
+            idx = np.arange(k, sims.shape[0] - k)
+            selected = np.hstack((indices_sorted[:, :k],
+                                  indices_sorted[:, -k - 1:]))
+
+            for ii in range(len(sims)):
+                sims[ii, indices_sorted[ii, :k]] = 0
+                sims[ii, indices_sorted[ii, -k - 1:]] = 1
+
+            from itertools import product
+            selected_set = set()
+            for i in range(len(sims)):
+                for pair in product([i], selected[i]):
+                    if pair[0] > pair[1]:
+                        pair = (pair[1], pair[0])
+                    if pair[0] == pair[1]:
+                        continue
+                    selected_set.add(pair)
+
+            sampled = np.array(list(selected_set)).transpose()
+            node_pairs = (sampled[0], sampled[1])
+            pseudo_labels = sims[node_pairs].reshape(-1)
+            np.save(f'saved/{args.dataset}_{k}_normmfptsim_pseudo_label.npy', pseudo_labels)
+            np.save(f'saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy', sampled)
+        else:
+            print(f'loading saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy')
+            sampled = np.load(f'saved/{args.dataset}_{k}_normmfptsim_sampled_idx.npy')
+            pseudo_labels = np.load(f'saved/{args.dataset}_{k}_normmfptsim_pseudo_label.npy')
+        print('number of sampled:', len(sampled[0]))
+        self.node_pairs = (sampled[0], sampled[1])
+        return pseudo_labels
+
+
 def ectd_similarity(adj: sp.coo_matrix):
     adj = adj.toarray()
     deg = adj.sum(1)
@@ -400,13 +535,37 @@ def ectd_similarity(adj: sp.coo_matrix):
 
 
 def mfpt_similarity(adj, features):
-    adj = adj.toarray()
+    # self-loops
+    adj = adj.toarray() + np.identity(adj.shape[0])
+
+    # standard form
     deg = adj.sum(1)
     lap = deg - adj
     lap_pinv = np.linalg.pinv(lap)
+
     # eigen
     eig_vals, eig_vectors = np.linalg.eig(lap_pinv)
     eig_vectors = np.real(eig_vectors)
+
+    features = eig_vectors @ features
+
+    return cosine_similarity(features)
+
+
+def norm_mfpt_similarity(adj, features):
+    # self-loops
+    adj = adj.toarray() + np.identity(adj.shape[0])
+
+    # normalized form
+    d_inv_sqrt = np.power(deg, -0.5)
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    lap = np.identity(adj.shape[0]) - d_inv_sqrt.dot(adj).dot(d_inv_sqrt)
+    lap_pinv = np.linalg.pinv(lap)
+
+    # eigen
+    eig_vals, eig_vectors = np.linalg.eig(lap_pinv)
+    eig_vectors = np.real(eig_vectors)
+
     features = eig_vectors @ features
 
     return cosine_similarity(features)
